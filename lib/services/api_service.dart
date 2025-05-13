@@ -38,4 +38,19 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('token');
   }
+
+  Future<bool> register(String rut, String nombre, String email, String password) async {
+    try {
+      await _dio.post('/auth/register', data: {
+        'rut': rut,
+        'nombre': nombre,
+        'email': email,
+        'password': password,
+      });
+      return true;
+    } on DioException catch (e) {
+      print('Error en registro: ${e.response?.data}');
+      return false;
+    }
+  }
 }
