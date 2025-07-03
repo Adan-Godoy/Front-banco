@@ -1,8 +1,9 @@
 // lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:front_sistema_bancario/services/api_service.dart';
-import '../home_screen.dart';
+import 'package:front_sistema_bancario/api/api_service.dart';
+import '../home/home_screen.dart';
 import '../auth/register_screen.dart';
+import '../main_screen.dart'; 
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -32,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (token != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) => const MainScreen()),
       );
     } else {
       setState(() {

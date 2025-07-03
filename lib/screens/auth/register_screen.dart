@@ -1,6 +1,6 @@
 // lib/screens/register_screen.dart
 import 'package:flutter/material.dart';
-import 'package:front_sistema_bancario/services/api_service.dart';
+import 'package:front_sistema_bancario/api/api_service.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
