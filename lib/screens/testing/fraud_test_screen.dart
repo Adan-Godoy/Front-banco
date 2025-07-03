@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../api/api_service.dart';
-import '../../models/tarjeta.dart'; // <-- IMPORTAR MODELO DE TARJETA
+import '../../models/tarjeta.dart';
 
 class FraudTestScreen extends StatefulWidget {
   const FraudTestScreen({super.key});
@@ -14,34 +14,52 @@ class _FraudTestScreenState extends State<FraudTestScreen> {
   final _formKey = GlobalKey<FormState>();
   final _api = ApiService();
 
-  // <<< ESTADO PARA LAS TARJETAS >>>
   late Future<List<Tarjeta>> _tarjetasFuture;
   Tarjeta? _selectedTarjeta;
 
-  // Controladores para los datos que no se seleccionan
   final _montoController = TextEditingController(text: '10000');
   
-  // Estado para los selectores de fraude
   String _selectedPais = 'Chile';
   DateTime _selectedDateTime = DateTime.now().toUtc();
   
-  // Estado de la UI
   Map<String, dynamic>? _resultado;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Cargamos las tarjetas del usuario al iniciar la pantalla
     _tarjetasFuture = _api.getTarjetas();
   }
 
+  // <<< MÉTODO CORREGIDO Y COMPLETO >>>
   Future<void> _selectDateTime() async {
-    // ... (este método no cambia)
+    // Para el selector, mostramos la fecha en hora local para que sea intuitivo
+    final fechaLocalActual = _selectedDateTime.toLocal();
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: fechaLocalActual,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (date == null) return; // El usuario canceló la selección de fecha
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(fechaLocalActual),
+    );
+    if (time == null) return; // El usuario canceló la selección de hora
+
+    // Creamos un nuevo objeto DateTime con la fecha y hora local seleccionada
+    final fechaLocalSeleccionada = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    
+    // Y lo guardamos en nuestro estado CONVIRTIÉNDOLO A UTC
+    setState(() {
+      _selectedDateTime = fechaLocalSeleccionada.toUtc();
+    });
   }
 
   void _simularCompra() async {
-    // Validamos que se haya seleccionado una tarjeta
     if (_selectedTarjeta == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, selecciona una tarjeta.')),
@@ -65,7 +83,12 @@ class _FraudTestScreenState extends State<FraudTestScreen> {
     if(mounted) {
       setState(() { _isLoading = false; _resultado = resultado; });
       if (resultado.containsKey('transaccionId')) {
-        Navigator.of(context).pop(true);
+        // No cerramos la pantalla para que el usuario pueda ver el resultado y hacer más pruebas
+        // Navigator.of(context).pop(true);
+        // En su lugar, podemos mostrar un SnackBar de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Simulación generó una transacción pendiente.'), backgroundColor: Colors.blue),
+        );
       }
     }
   }
@@ -84,7 +107,6 @@ class _FraudTestScreenState extends State<FraudTestScreen> {
               Text('Seleccionar Tarjeta', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 16),
               
-              // <<< WIDGET MEJORADO PARA SELECCIONAR TARJETA >>>
               FutureBuilder<List<Tarjeta>>(
                 future: _tarjetasFuture,
                 builder: (context, snapshot) {
@@ -101,7 +123,6 @@ class _FraudTestScreenState extends State<FraudTestScreen> {
                     hint: const Text('Selecciona una tarjeta para la prueba'),
                     isExpanded: true,
                     items: tarjetas.map((tarjeta) {
-                      // Mostramos los últimos 4 dígitos para identificarla
                       final ultimos4 = tarjeta.numero.substring(tarjeta.numero.length - 4);
                       return DropdownMenuItem(
                         value: tarjeta,
@@ -137,7 +158,7 @@ class _FraudTestScreenState extends State<FraudTestScreen> {
               const SizedBox(height: 24),
               ListTile(
                 title: const Text('Fecha y Hora de la Transacción'),
-                subtitle: Text(DateFormat('dd MMM yyyy, HH:mm', 'es_ES').format(_selectedDateTime)),
+                subtitle: Text(DateFormat('dd MMM yyyy, HH:mm', 'es_ES').format(_selectedDateTime.toLocal())),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: _selectDateTime,
               ),
@@ -151,10 +172,12 @@ class _FraudTestScreenState extends State<FraudTestScreen> {
                 const SizedBox(height: 24),
                 Text('Resultado de la Simulación:', style: Theme.of(context).textTheme.titleMedium),
                 Card(
-                  color: _resultado!.containsKey('error') ? Colors.red.shade100 : Colors.green.shade100,
+                  color: _resultado!.containsKey('error') || _resultado!.containsKey('statusCode') && _resultado!['statusCode'] >= 400
+                      ? Colors.red.shade100
+                      : Colors.green.shade100,
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
-                    child: Text(_resultado.toString()),
+                    child: SelectableText(_resultado.toString()),
                   ),
                 )
               ]
